@@ -1,7 +1,3 @@
-"""
-Diagnostics & Setup Helper for Facial Recognition System
-Run this to verify your system is properly configured
-"""
 
 import sys
 import cv2
@@ -10,29 +6,29 @@ from pathlib import Path
 
 
 def print_header(text):
-    """Print formatted header"""
+
     print("\n" + "="*60)
     print(f"  {text}")
     print("="*60)
 
 
 def print_success(text):
-    """Print success message"""
-    print(f"✅ {text}")
+   
+    print(f"SUCCESS {text}")
 
 
 def print_error(text):
-    """Print error message"""
-    print(f"❌ {text}")
+   
+    print(f"ERROR {text}")
 
 
 def print_warning(text):
-    """Print warning message"""
-    print(f"⚠️  {text}")
+ 
+    print(f"WARNING  {text}")
 
 
 def check_python_version():
-    """Check Python version"""
+
     print_header("Python Version Check")
     version = sys.version_info
     version_str = f"{version.major}.{version.minor}.{version.micro}"
@@ -47,7 +43,7 @@ def check_python_version():
 
 
 def check_packages():
-    """Check installed packages"""
+  
     print_header("Required Packages Check")
     
     required = [
@@ -91,7 +87,7 @@ def check_packages():
 
 
 def check_camera():
-    """Check camera availability"""
+
     print_header("Camera Check")
     
     for i in range(5):
@@ -115,7 +111,7 @@ def check_camera():
 
 
 def check_folders():
-    """Check required folders"""
+
     print_header("Folder Structure Check")
     
     folders = {
@@ -143,7 +139,7 @@ def check_folders():
 
 
 def check_student_photos():
-    """Check student photo quality"""
+
     print_header("Student Photos Quality Check")
     
     face_data_path = Path("face_data")
@@ -176,7 +172,7 @@ def check_student_photos():
 
 
 def check_face_recognition_library():
-    """Test face_recognition library"""
+ 
     print_header("face_recognition Library Test")
     
     try:
@@ -200,7 +196,7 @@ def check_face_recognition_library():
 
 
 def check_insightface_library():
-    """Test insightface library"""
+    
     print_header("insightface Library Test")
     
     try:
@@ -221,13 +217,13 @@ def check_insightface_library():
 
 
 def generate_recommendations():
-    """Generate personalized recommendations"""
+   
     print_header("Recommendations")
     
     print("\n1. WHICH VERSION TO USE:")
-    print("   ✅ facial_recognition_v2.py")
+    print("    facial_recognition_v2.py")
     print("      Best for most schools (99% accuracy, fast)")
-    print("\n   🚀 facial_recognition_high_accuracy.py")
+    print("\n    facial_recognition_high_accuracy.py")
     print("      For critical systems (99.9% accuracy, slower)")
     
     print("\n2. SETUP CHECKLIST:")
@@ -256,7 +252,7 @@ def generate_recommendations():
 
 
 def main():
-    """Run all diagnostics"""
+
     print("\n" + "█"*60)
     print("█  Facial Recognition System - Diagnostics")
     print("█  Run this to verify your setup is correct")
