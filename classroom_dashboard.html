@@ -1,0 +1,1762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classroom Dashboard - Seat Plan & Attendance</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(rgba(250, 247, 242, 0.9), rgba(250, 247, 242, 0.9)), url('CITBG.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            min-height: 100vh;
+            padding: 16px;
+            color: #1e293b;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 1px 3px rgba(100,20,20,0.08), 0 6px 24px rgba(100,20,20,0.07);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #7f1d1d;
+            color: white;
+            padding: 20px 28px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            border-bottom: 3px solid #a16207;
+        }
+
+        .header-text h1 {
+            font-size: 1.25em;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+
+        .header-text p {
+            font-size: 0.8em;
+            color: #fcd34d;
+            margin-top: 2px;
+            opacity: 0.8;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            height: calc(100vh - 77px);
+            overflow: hidden;
+        }
+
+        .classroom-area {
+            background: #fdf8f3;
+            padding: 24px;
+            overflow-y: auto;
+            border-right: 1px solid #e8ddd0;
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr 280px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            .sidebar {
+                order: -1;
+            }
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 7px 14px;
+            border: 1px solid transparent;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: filter 0.12s, transform 0.1s;
+            letter-spacing: 0.01em;
+        }
+
+        .btn:hover {
+            filter: brightness(0.88);
+            transform: translateY(-1px);
+        }
+
+        .btn:active {
+            filter: brightness(0.78);
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: #7f1d1d;
+            color: #fde68a;
+        }
+
+        .btn-success {
+            background: #a16207;
+            color: white;
+        }
+
+        .btn-info {
+            background: #92400e;
+            color: #fef3c7;
+        }
+
+        .btn-danger {
+            background: #475569;
+            color: white;
+        }
+
+        .classroom-grid {
+            display: grid;
+            gap: 12px;
+            margin: 16px 0;
+            width: 100%;
+        }
+
+        .teacher-desk {
+            background: #7f1d1d;
+            border-radius: 6px;
+            padding: 12px 20px;
+            text-align: center;
+            color: #fde68a;
+            font-weight: 600;
+            font-size: 0.85em;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            grid-column: 1 / -1;
+            border-bottom: 2px solid #a16207;
+        }
+
+        .row-container {
+            display: grid;
+            gap: 8px;
+        }
+
+        .seat {
+            background: white;
+            border: 2px dashed #d6c5b0;
+            border-radius: 8px;
+            padding: 10px;
+            min-height: 80px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            font-size: 0.875em;
+            transition: border-color 0.15s, box-shadow 0.15s, transform 0.12s;
+        }
+
+        .seat:hover {
+            box-shadow: 0 2px 8px rgba(127,29,29,0.1);
+            transform: translateY(-1px);
+        }
+
+        @media (max-width: 1200px) {
+            .seat {
+                padding: 8px;
+                min-height: 70px;
+                font-size: 0.8em;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .seat {
+                min-height: 60px;
+                font-size: 0.75em;
+            }
+        }
+
+        .seat.occupied {
+            border: 2px solid #d6c5b0;
+            background: white;
+        }
+
+        .seat.occupied.present {
+            border-color: #a16207;
+            background: #fffbeb;
+        }
+
+        .seat.occupied.absent {
+            border-color: #e2ddd6;
+            background: #faf8f5;
+            opacity: 0.55;
+        }
+
+        .student-name {
+            font-weight: 600;
+            font-size: 0.9em;
+            margin-bottom: 4px;
+            text-align: center;
+            color: #0f172a;
+        }
+
+        .student-status {
+            font-size: 0.72em;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-top: 4px;
+            font-weight: 500;
+            letter-spacing: 0.03em;
+        }
+
+        .status-present {
+            background: #fef3c7;
+            color: #7f1d1d;
+        }
+
+        .status-absent {
+            background: #f5f0ea;
+            color: #78716c;
+        }
+
+        .student-points {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            background: #a16207;
+            color: #fff8e1;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 0.72em;
+            font-weight: 600;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            background: white;
+        }
+
+        .panel {
+            padding: 18px 20px;
+            border-bottom: 1px solid #e8ddd0;
+        }
+
+        .panel h3 {
+            margin-bottom: 14px;
+            font-size: 0.72em;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #a16207;
+        }
+
+        .student-list {
+            max-height: 220px;
+            overflow-y: auto;
+        }
+
+        .student-item {
+            padding: 8px 10px;
+            margin-bottom: 5px;
+            background: #fdf8f3;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #e8ddd0;
+            font-size: 0.875em;
+            transition: background 0.12s, border-color 0.12s;
+        }
+
+        .student-item:hover {
+            background: #fef3c7;
+            border-color: #d4a017;
+        }
+
+        .student-item.present {
+            background: #fffbeb;
+            border-color: #d4a017;
+        }
+
+        .student-item.absent {
+            opacity: 0.45;
+        }
+
+        .point-controls {
+            display: flex;
+            gap: 4px;
+        }
+
+        .point-btn {
+            width: 26px;
+            height: 26px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            line-height: 1;
+            transition: filter 0.1s;
+        }
+
+        .point-btn:hover {
+            filter: brightness(0.88);
+        }
+
+        .point-add {
+            background: #7f1d1d;
+            color: #fde68a;
+        }
+
+        .point-sub {
+            background: #e8ddd0;
+            color: #78350f;
+        }
+
+        .status-box {
+            padding: 9px 12px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 0.8em;
+            margin-bottom: 16px;
+            border: 1px solid transparent;
+        }
+
+        .status-waiting {
+            background: #fefce8;
+            color: #92400e;
+            border-color: #fde68a;
+        }
+
+        .status-loaded {
+            background: #fefbf0;
+            color: #a16207;
+            border-color: #fcd34d;
+        }
+
+        .status-error {
+            background: #fdf2f2;
+            color: #7f1d1d;
+            border-color: #fca5a5;
+        }
+
+        .wheel-container {
+            position: relative;
+            width: 260px;
+            height: 260px;
+            margin: 14px auto;
+        }
+
+        .wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 5px solid #a16207;
+            position: relative;
+            transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+            background: conic-gradient(
+                from 0deg,
+                #7f1d1d 0deg 60deg,
+                #991b1b 60deg 120deg,
+                #a16207 120deg 180deg,
+                #b45309 180deg 240deg,
+                #92400e 240deg 300deg,
+                #78350f 300deg 360deg
+            );
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .wheel-names {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            top: 0;
+            left: 0;
+        }
+
+        .wheel-name {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: white;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.55);
+            text-align: center;
+            white-space: normal;
+        }
+
+        .wheel-center {
+            width: 52px;
+            height: 52px;
+            background: #fef3c7;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 10px;
+            letter-spacing: 0.06em;
+            z-index: 10;
+            color: #7f1d1d;
+        }
+
+        .wheel-pointer {
+            position: absolute;
+            top: -13px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 11px solid transparent;
+            border-right: 11px solid transparent;
+            border-top: 22px solid #a16207;
+            z-index: 10;
+        }
+
+        .wheel-result {
+            text-align: center;
+            margin-top: 12px;
+            padding: 11px 14px;
+            background: #fffbeb;
+            border: 1px solid #d4a017;
+            border-radius: 6px;
+            font-size: 0.9em;
+            font-weight: 600;
+            color: #7f1d1d;
+            display: none;
+        }
+
+        select, input[type="number"] {
+            border: 1px solid #e2e8f0;
+            border-radius: 5px;
+            padding: 4px 7px;
+            font-size: 13px;
+            background: white;
+            color: #1e293b;
+            font-family: inherit;
+        }
+
+        select:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: #a16207;
+            box-shadow: 0 0 0 2px rgba(161,98,7,0.15);
+        }
+
+        label {
+            font-size: 13px;
+            color: #475569;
+        }
+
+        .subject-bar {
+            background: #fdf8f3;
+            padding: 8px 24px;
+            border-bottom: 1px solid #e8ddd0;
+            display: grid;
+            gap: 8px;
+        }
+
+        .hierarchy-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .hierarchy-chip {
+            font-size: 12px;
+            color: #7f1d1d;
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
+            border-radius: 5px;
+            padding: 4px 8px;
+        }
+
+        .subject-tabs-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .hotbar-title {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #92400e;
+            margin-right: 4px;
+        }
+
+        .hotbar-hint {
+            font-size: 12px;
+            color: #9a3412;
+            background: #fff7ed;
+            border: 1px solid #fdba74;
+            border-radius: 6px;
+            padding: 5px 8px;
+            display: inline-block;
+        }
+
+        .subject-tab {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            padding: 5px 12px;
+            border-radius: 5px;
+            font-size: 12.5px;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid #d6c5b0;
+            background: white;
+            color: #78350f;
+            font-family: inherit;
+            transition: background 0.12s, border-color 0.12s;
+        }
+
+        .subject-tab:hover {
+            background: #fef3c7;
+            border-color: #a16207;
+        }
+
+        .subject-tab.active {
+            background: #7f1d1d;
+            color: #fde68a;
+            border-color: #7f1d1d;
+        }
+
+        .subject-add-btn {
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12.5px;
+            border: 1px dashed #d6c5b0;
+            background: transparent;
+            color: #a16207;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background 0.12s, border-color 0.12s;
+        }
+
+        .subject-add-btn:hover {
+            background: #fef3c7;
+            border-color: #a16207;
+        }
+
+        .class-setup-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.48);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            padding: 14px;
+        }
+
+        .class-setup-card {
+            width: min(460px, 100%);
+            background: white;
+            border-radius: 10px;
+            border: 1px solid #e8ddd0;
+            box-shadow: 0 12px 26px rgba(0, 0, 0, 0.22);
+            overflow: hidden;
+        }
+
+        .class-setup-head {
+            padding: 14px 16px;
+            background: #7f1d1d;
+            color: #fde68a;
+            font-weight: 600;
+            border-bottom: 2px solid #a16207;
+        }
+
+        .class-setup-body {
+            padding: 14px 16px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .setup-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .class-meta {
+            font-size: 12px;
+            color: #92400e;
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            border-radius: 6px;
+            padding: 7px 10px;
+        }
+
+        @media (max-width: 640px) {
+            .setup-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="classSetupModal" class="class-setup-modal">
+        <div class="class-setup-card">
+            <div class="class-setup-head">Class Setup</div>
+            <div class="class-setup-body">
+                <div class="setup-grid">
+                    <label>1) Grade Level
+                        <select id="setupGrade" style="width: 100%; margin-top: 4px;">
+                            <option value="11">Grade 11</option>
+                            <option value="12">Grade 12</option>
+                        </select>
+                    </label>
+                    <label>2) Section
+                        <select id="setupSection" style="width: 100%; margin-top: 4px;"></select>
+                    </label>
+                </div>
+                <div class="setup-grid">
+                    <label>Add New Section (Optional)
+                        <input id="setupNewSection" type="text" placeholder="e.g. B" style="width: 100%; margin-top: 4px;">
+                    </label>
+                    <label style="display:flex; align-items:flex-end;">
+                        <button class="btn btn-info" style="width:100%;" onclick="addSectionFromModal()">Add Section</button>
+                    </label>
+                </div>
+                <label>3) Subject
+                    <select id="setupSubject" style="width: 100%; margin-top: 4px;"></select>
+                </label>
+                <label>4) Teacher Name
+                    <input id="setupTeacher" type="text" placeholder="e.g. Ms. Santos" style="width: 100%; margin-top: 4px;">
+                </label>
+                <div class="class-meta">Hierarchy: Grade Level > Section > Subject > Teacher Name</div>
+                <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px;">
+                    <button class="btn btn-danger" onclick="closeClassSetupModal()">Cancel</button>
+                    <button class="btn btn-success" onclick="applyClassSetup()">Apply</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <div class="header-text">
+                <h1>Classroom Dashboard</h1>
+                <p id="headerClassInfo">Seat Plan &amp; Attendance</p>
+            </div>
+        </div>
+
+        <div class="subject-bar" id="subjectBar"></div>
+
+        <div class="main-content">
+            <div class="classroom-area">
+                <div class="controls">
+                    <button class="btn btn-primary" onclick="handleSync()">Sync & Load</button>
+                    <button class="btn btn-success" onclick="handleAutoAssign()">Auto-Assign</button>
+                    <button class="btn btn-info" onclick="handleExport()">Export CSV</button>
+                    <button class="btn btn-danger" onclick="handleReset()">Reset Seats</button>
+                        <label>Section:
+                        <select style="width: 88px; margin-left: 4px;">
+                            <option value="top">Quality</option>
+                            <option value="bottom">Other</option>
+                        </select>
+                    </label>
+                </div>
+
+                <div id="statusBox" class="status-box status-waiting">Loading...</div>
+
+                <div id="classroom" class="classroom-grid">
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="panel">
+                    <h3>Students</h3>
+                    <div id="studentList" class="student-list">
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>Layout Settings</h3>
+                    <div style="display: grid; gap: 8px;">
+                        <div>
+                            <label>Rows: <input id="inputRows" type="number" min="1" max="10" value="4" style="width: 56px;"></label>
+                        </div>
+                        <div>
+                            <label>Seats per Row: <input id="inputSeatsPerRow" type="number" min="1" max="10" value="4" style="width: 56px;"></label>
+                        </div>
+                        <div>
+                            <label>Sections: <input id="inputSections" type="number" min="1" max="3" value="2" style="width: 56px;"></label>
+                        </div>
+                        <div>
+                            <label style="display:flex; align-items:center; gap:6px;"><input id="inputAisle" type="checkbox" checked> Aisle between sections</label>
+                        </div>
+                        <div>
+                            <label>Teacher Position:
+                                <select id="inputTeacherPos" style="width: 80px; margin-left: 4px;">
+                                    <option value="top">Top</option>
+                                    <option value="bottom">Bottom</option>
+                                </select>
+                            </label>
+                        </div>
+                        <button class="btn btn-success" style="width: 100%; margin-top: 4px;" onclick="applySettings()">Apply</button>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>Actions</h3>
+                    <div style="display: grid; gap: 7px;">
+                        <button class="btn btn-info" style="width: 100%;" onclick="handleResetPoints()">Reset Points</button>
+                        <button class="btn btn-danger" style="width: 100%;" onclick="handleResetAll()">Reset All</button>
+                        <button class="btn btn-primary" style="width: 100%;" onclick="showDebugInfo()">Debug Info</button>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>Wheel of Names</h3>
+                    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 10px;">
+                        <select id="wheelMode" style="flex: 1;">
+                            <option value="present">Present Only</option>
+                            <option value="all">All Students</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="handleSpinWheel()">Spin</button>
+                    </div>
+                    <div class="wheel-container">
+                        <div class="wheel-pointer"></div>
+                        <div id="wheel" class="wheel">
+                            <div id="wheelNames" class="wheel-names"></div>
+                            <div class="wheel-center">SPIN</div>
+                        </div>
+                    </div>
+                    <div id="wheelResult" class="wheel-result"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let students = [];
+        let seatAssignments = {};
+        let allSeatAssignments = {};
+        let studentPoints = {};
+        const SUBJECT_OPTIONS = [
+            'MIL',
+            'Entrepreneurship',
+            'Physics 2',
+            'Research 3',
+            'Research 4',
+            'Literature',
+            'Biology 2',
+            'Physical Education'
+        ];
+        let subjects = [...SUBJECT_OPTIONS];
+        let currentSubject = 'MIL';
+        let allSubjectPoints = {};
+        let classHierarchy = {
+            '11': { 'A': { teachersBySubject: {} } },
+            '12': { 'A': { teachersBySubject: {} } }
+        };
+        let classProfile = {
+            teacherName: '',
+            grade: '11',
+            section: 'A'
+        };
+
+        const config = {
+            teacherPos: 'top',
+            rows: 4,
+            seatsPerRow: 4,
+            aisle: true,
+            sections: 2
+        };
+
+      
+        function loadConfig() {
+            const saved = localStorage.getItem('classroomConfig');
+            if (saved) {
+                Object.assign(config, JSON.parse(saved));
+            }
+            updateSettingsUI();
+        }
+
+       
+        function saveConfig() {
+            localStorage.setItem('classroomConfig', JSON.stringify(config));
+            console.log('Config saved:', config);
+        }
+
+        
+        function loadSeatAssignments() {
+            const savedAll = localStorage.getItem('allSeatAssignments');
+            if (savedAll) {
+                allSeatAssignments = JSON.parse(savedAll);
+            } else {
+                const savedLegacy = localStorage.getItem('seatAssignments');
+                if (savedLegacy) {
+                    allSeatAssignments[getContextKey()] = JSON.parse(savedLegacy);
+                }
+            }
+            ensureActiveSeatAssignments();
+        }
+
+    
+        function saveSeatAssignments() {
+            allSeatAssignments[getContextKey()] = seatAssignments;
+            localStorage.setItem('allSeatAssignments', JSON.stringify(allSeatAssignments));
+            console.log('Seat assignments saved');
+        }
+
+        function ensureHierarchyBranch(grade, section) {
+            if (!classHierarchy[grade]) classHierarchy[grade] = {};
+            if (!classHierarchy[grade][section]) classHierarchy[grade][section] = { teachersBySubject: {} };
+            if (!classHierarchy[grade][section].teachersBySubject) classHierarchy[grade][section].teachersBySubject = {};
+            SUBJECT_OPTIONS.forEach(subject => {
+                if (!classHierarchy[grade][section].teachersBySubject[subject]) {
+                    classHierarchy[grade][section].teachersBySubject[subject] = [];
+                }
+            });
+        }
+
+        function getSectionsForGrade(grade) {
+            if (!classHierarchy[grade]) classHierarchy[grade] = {};
+            const sections = Object.keys(classHierarchy[grade]);
+            if (!sections.length) {
+                classHierarchy[grade]['A'] = { teachersBySubject: {} };
+                ensureHierarchyBranch(grade, 'A');
+                return ['A'];
+            }
+            return sections.sort((a, b) => a.localeCompare(b));
+        }
+
+        function getTeachersForContext(grade, section, subject) {
+            ensureHierarchyBranch(grade, section);
+            return classHierarchy[grade][section].teachersBySubject[subject] || [];
+        }
+
+        function getContextKey(subjectName = currentSubject, teacherName = classProfile.teacherName) {
+            const teacherPart = teacherName && teacherName.trim() ? teacherName.trim() : '__NO_TEACHER__';
+            return `G${classProfile.grade}-S${classProfile.section}-SUB${subjectName}-T${teacherPart}`;
+        }
+
+        function ensureActiveSeatAssignments() {
+            const key = getContextKey();
+            if (!allSeatAssignments[key]) allSeatAssignments[key] = {};
+            seatAssignments = allSeatAssignments[key];
+        }
+
+        function loadClassHierarchy() {
+            const saved = localStorage.getItem('classHierarchy');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                classHierarchy = parsed && typeof parsed === 'object' ? parsed : classHierarchy;
+            }
+            ensureHierarchyBranch(classProfile.grade, classProfile.section);
+        }
+
+        function saveClassHierarchy() {
+            localStorage.setItem('classHierarchy', JSON.stringify(classHierarchy));
+        }
+
+        function loadSubjects() {
+            subjects = [...SUBJECT_OPTIONS];
+            const savedCurrent = localStorage.getItem('currentSubject');
+            if (savedCurrent && subjects.includes(savedCurrent)) currentSubject = savedCurrent;
+            if (!subjects.includes(currentSubject)) currentSubject = subjects[0] || SUBJECT_OPTIONS[0];
+        }
+
+        function getSubjectKey(subjectName = currentSubject, teacherName = classProfile.teacherName) {
+            const teacherPart = teacherName && teacherName.trim() ? teacherName.trim() : '__NO_TEACHER__';
+            return `G${classProfile.grade}-${classProfile.section}-${subjectName}-${teacherPart}`;
+        }
+
+        function ensureActiveSubjectPoints() {
+            const key = getSubjectKey();
+            if (!allSubjectPoints[key]) allSubjectPoints[key] = {};
+            studentPoints = allSubjectPoints[key];
+        }
+
+    
+        function loadAllSubjectPoints() {
+            const saved = localStorage.getItem('allSubjectPoints');
+            if (saved) {
+                allSubjectPoints = JSON.parse(saved);
+            }
+
+            const activeKey = getSubjectKey();
+            if (!allSubjectPoints[activeKey]) {
+                const legacy = localStorage.getItem('studentPoints');
+                allSubjectPoints[activeKey] = legacy ? JSON.parse(legacy) : {};
+            }
+            ensureActiveSubjectPoints();
+        }
+
+        function savePoints() {
+            allSubjectPoints[getSubjectKey()] = studentPoints;
+            localStorage.setItem('allSubjectPoints', JSON.stringify(allSubjectPoints));
+        }
+
+        function loadClassProfile() {
+            const saved = localStorage.getItem('classProfile');
+            if (saved) {
+                classProfile = JSON.parse(saved);
+            }
+        }
+
+        function saveClassProfile() {
+            localStorage.setItem('classProfile', JSON.stringify(classProfile));
+        }
+
+        function refreshHeaderClassInfo() {
+            const el = document.getElementById('headerClassInfo');
+            if (!el) return;
+            const teacher = classProfile.teacherName || 'Select Teacher';
+            el.textContent = `${teacher} • Grade ${classProfile.grade}-${classProfile.section} • ${currentSubject}`;
+        }
+
+        function refreshSetupSubjectOptions(preferredSubject) {
+            const setupSubject = document.getElementById('setupSubject');
+            setupSubject.innerHTML = '';
+            const list = [...SUBJECT_OPTIONS];
+            list.forEach(subj => {
+                const opt = document.createElement('option');
+                opt.value = subj;
+                opt.textContent = subj;
+                setupSubject.appendChild(opt);
+            });
+            setupSubject.value = preferredSubject && list.includes(preferredSubject) ? preferredSubject : list[0];
+        }
+
+        function refreshSetupSectionOptions(preferredSection) {
+            const setupGrade = document.getElementById('setupGrade').value;
+            const setupSection = document.getElementById('setupSection');
+            const sections = getSectionsForGrade(setupGrade);
+            setupSection.innerHTML = '';
+            sections.forEach(sec => {
+                const opt = document.createElement('option');
+                opt.value = sec;
+                opt.textContent = sec;
+                setupSection.appendChild(opt);
+            });
+            setupSection.value = preferredSection && sections.includes(preferredSection) ? preferredSection : sections[0];
+        }
+
+        function syncSetupTeacherField() {
+            const grade = document.getElementById('setupGrade').value;
+            const section = document.getElementById('setupSection').value;
+            const subject = document.getElementById('setupSubject').value;
+            const teacherList = getTeachersForContext(grade, section, subject);
+            document.getElementById('setupTeacher').value = teacherList[0] || '';
+        }
+
+        function openClassSetupModal() {
+            document.getElementById('setupGrade').value = classProfile.grade || '11';
+            refreshSetupSectionOptions(classProfile.section || 'A');
+            refreshSetupSubjectOptions(currentSubject);
+            syncSetupTeacherField();
+            document.getElementById('setupNewSection').value = '';
+            document.getElementById('classSetupModal').style.display = 'flex';
+        }
+
+        function closeClassSetupModal() {
+            document.getElementById('classSetupModal').style.display = 'none';
+        }
+
+        function applyClassSetup() {
+            const teacherName = document.getElementById('setupTeacher').value.trim();
+            const grade = document.getElementById('setupGrade').value;
+            const section = (document.getElementById('setupSection').value || 'A').toUpperCase();
+            const subject = document.getElementById('setupSubject').value;
+
+            ensureHierarchyBranch(grade, section);
+            const teacherList = classHierarchy[grade][section].teachersBySubject[subject] || [];
+            if (teacherName && !teacherList.includes(teacherName)) {
+                teacherList.push(teacherName);
+            }
+            classHierarchy[grade][section].teachersBySubject[subject] = teacherList;
+            classProfile.teacherName = teacherName;
+            classProfile.grade = grade;
+            classProfile.section = section;
+
+            subjects = [...SUBJECT_OPTIONS];
+            currentSubject = subjects.includes(subject) ? subject : subjects[0];
+            localStorage.setItem('currentSubject', currentSubject);
+
+            saveClassProfile();
+            saveClassHierarchy();
+            ensureActiveSubjectPoints();
+            ensureActiveSeatAssignments();
+            savePoints();
+            saveSeatAssignments();
+            refreshHeaderClassInfo();
+            renderSubjectTabs();
+            closeClassSetupModal();
+            loadStudents();
+            loadStudentList();
+            updateStatus(`Class set: Grade ${grade}-${section} • ${currentSubject}`, 'loaded');
+        }
+
+        function addSectionFromModal() {
+            const grade = document.getElementById('setupGrade').value;
+            const raw = document.getElementById('setupNewSection').value.trim();
+            if (!raw) return;
+            const section = raw.toUpperCase();
+            ensureHierarchyBranch(grade, section);
+            saveClassHierarchy();
+            refreshSetupSectionOptions(section);
+            syncSetupTeacherField();
+            document.getElementById('setupNewSection').value = '';
+        }
+
+       
+        function updateSettingsUI() {
+            document.getElementById('inputRows').value = config.rows;
+            document.getElementById('inputSeatsPerRow').value = config.seatsPerRow;
+            document.getElementById('inputSections').value = config.sections;
+            document.getElementById('inputAisle').checked = config.aisle;
+            document.getElementById('inputTeacherPos').value = config.teacherPos;
+        }
+
+        
+        function applySettings() {
+            config.rows = parseInt(document.getElementById('inputRows').value);
+            config.seatsPerRow = parseInt(document.getElementById('inputSeatsPerRow').value);
+            config.sections = parseInt(document.getElementById('inputSections').value);
+            config.aisle = document.getElementById('inputAisle').checked;
+            config.teacherPos = document.getElementById('inputTeacherPos').value;
+            
+            saveConfig();
+            loadStudents();
+            updateStatus('Settings applied', 'loaded');
+        }
+
+        function updateStatus(message, type) {
+            const statusBox = document.getElementById('statusBox');
+            statusBox.className = `status-box status-${type}`;
+            statusBox.textContent = message;
+        }
+
+        function loadStudents() {
+            const classroom = document.getElementById('classroom');
+            classroom.innerHTML = '';
+
+            const { teacherPos, rows, seatsPerRow, sections } = config;
+
+            if (teacherPos === 'top') {
+                const desk = document.createElement('div');
+                desk.className = 'teacher-desk';
+                desk.textContent = "Teacher's Desk";
+                classroom.appendChild(desk);
+            }
+
+            const rowContainer = document.createElement('div');
+            rowContainer.className = 'row-container';
+            rowContainer.style.gridTemplateColumns = sections === 2 ? 
+                `repeat(${seatsPerRow}, 1fr) 40px repeat(${seatsPerRow}, 1fr)` :
+                `repeat(${seatsPerRow}, 1fr)`;
+
+            for (let r = 0; r < rows; r++) {
+                for (let sec = 0; sec < sections; sec++) {
+                    for (let s = 0; s < seatsPerRow; s++) {
+                        const seatId = `${r}-${sec}-${s}`;
+                        const seat = document.createElement('div');
+                        seat.className = 'seat';
+                        seat.dataset.seatId = seatId;
+                        seat.draggable = true;
+                        seat.style.cursor = 'grab';
+
+                        const studentName = Object.keys(seatAssignments).find(name => seatAssignments[name] === seatId);
+                        if (studentName) {
+                            const student = students.find(st => st.name === studentName);
+                            if (student) {
+                                seat.classList.add('occupied');
+                                seat.classList.add(student.present ? 'present' : 'absent');
+                                const points = studentPoints[student.name] || 0;
+                                seat.innerHTML = `
+                                    <div class="student-points">${points} pts</div>
+                                    <div class="student-name">${student.name}</div>
+                                    <div class="student-status ${student.present ? 'status-present' : 'status-absent'}">
+                                        ${student.present ? 'Present' : 'Absent'}
+                                    </div>
+                                `;
+                                
+                               
+                                seat.addEventListener('dragstart', handleDragStart);
+                                seat.addEventListener('dragend', handleDragEnd);
+                            }
+                        } else {
+                            
+                            seat.addEventListener('dragover', handleDragOver);
+                            seat.addEventListener('drop', handleDrop);
+                            seat.style.opacity = '0.5';
+                        }
+
+                        rowContainer.appendChild(seat);
+                    }
+                    if (sec < sections - 1 && config.aisle) {
+                        const aisle = document.createElement('div');
+                        aisle.style.minHeight = '20px';
+                        rowContainer.appendChild(aisle);
+                    }
+                }
+            }
+
+            classroom.appendChild(rowContainer);
+
+            if (teacherPos === 'bottom') {
+                const desk = document.createElement('div');
+                desk.className = 'teacher-desk';
+                desk.textContent = "Teacher's Desk";
+                classroom.appendChild(desk);
+            }
+        }
+
+      
+        let draggedStudent = null;
+        let draggedFromSeat = null;
+
+        function handleDragStart(e) {
+            draggedStudent = Object.keys(seatAssignments).find(name => seatAssignments[name] === e.target.closest('[data-seat-id]').dataset.seatId);
+            draggedFromSeat = e.target.closest('[data-seat-id]').dataset.seatId;
+            e.dataTransfer.effectAllowed = 'move';
+            e.target.closest('[data-seat-id]').style.opacity = '0.5';
+        }
+
+        function handleDragEnd(e) {
+            e.target.closest('[data-seat-id]').style.opacity = '1';
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            e.target.closest('[data-seat-id]').style.background = '#fff3cd';
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const targetSeatId = e.target.closest('[data-seat-id]').dataset.seatId;
+            e.target.closest('[data-seat-id]').style.background = '';
+
+            if (draggedStudent && draggedFromSeat !== targetSeatId) {
+             
+                seatAssignments[draggedStudent] = targetSeatId;
+                saveSeatAssignments();
+                loadStudents();
+                console.log(`Moved ${draggedStudent} from ${draggedFromSeat} to ${targetSeatId}`);
+            }
+
+            draggedStudent = null;
+            draggedFromSeat = null;
+        }
+
+        function loadStudentList() {
+            const list = document.getElementById('studentList');
+            list.innerHTML = '';
+
+            students.forEach(student => {
+                const item = document.createElement('div');
+                item.className = `student-item ${student.present ? 'present' : 'absent'}`;
+                const points = studentPoints[student.name] || 0;
+                
+                item.innerHTML = `
+                    <div>
+                        <strong>${student.name}</strong><br>
+                        <small>${points} points</small>
+                    </div>
+                    <div class="point-controls">
+                        <button class="point-btn point-add" onclick="addPoint('${student.name}')">+</button>
+                        <button class="point-btn point-sub" onclick="removePoint('${student.name}')">-</button>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+
+            
+            updateWheelNames();
+        }
+
+        async function handleSync() {
+            updateStatus('Loading...', 'waiting');
+            try {
+                console.log('Starting fetch of attendance_live.json');
+                const url = 'attendance_live.json?t=' + Date.now();
+                console.log('Fetch URL:', url);
+                
+                const response = await fetch(url);
+                console.log('Response status:', response.status, response.statusText);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const text = await response.text();
+                console.log('Raw response:', text);
+                
+                const data = JSON.parse(text);
+                console.log('Parsed data:', data);
+                
+                students = data.students || [];
+                console.log('Students loaded:', students);
+
+                
+                loadSeatAssignments();
+                loadAllSubjectPoints();
+
+             
+                const currentStudentNames = new Set(students.map(s => s.name));
+                let deletedCount = 0;
+                
+                
+                for (const studentName of Object.keys(seatAssignments)) {
+                    if (!currentStudentNames.has(studentName)) {
+                        delete seatAssignments[studentName];
+                        deletedCount++;
+                    }
+                }
+                
+         
+                for (const subj of Object.keys(allSubjectPoints)) {
+                    for (const studentName of Object.keys(allSubjectPoints[subj])) {
+                        if (!currentStudentNames.has(studentName)) {
+                            delete allSubjectPoints[subj][studentName];
+                        }
+                    }
+                }
+                
+                if (deletedCount > 0) {
+                    saveSeatAssignments();
+                    savePoints();
+                }
+
+               
+                students.forEach(s => {
+                    Object.keys(allSubjectPoints).forEach(key => {
+                        if (!(s.name in allSubjectPoints[key])) allSubjectPoints[key][s.name] = 0;
+                    });
+                });
+                ensureActiveSubjectPoints();
+
+              
+                const unassignedCount = students.filter(s => !(s.name in seatAssignments)).length;
+                console.log(`Students assigned: ${Object.keys(seatAssignments).length}, Unassigned: ${unassignedCount}`);
+                
+                if (unassignedCount > 0) {
+                    handleAutoAssign();
+                } else {
+                    console.log('All students already assigned, keeping saved positions');
+                }
+
+                loadStudents();
+                loadStudentList();
+
+                const presentCount = students.filter(s => s.present).length;
+                console.log(`Rendering: ${students.length} students (${presentCount} present)`);
+                updateStatus(`Loaded: ${students.length} students (${presentCount} present)`, 'loaded');
+            } catch (error) {
+                console.error('Sync error:', error);
+                console.error('Stack:', error.stack);
+                updateStatus('Error: ' + error.message, 'error');
+            }
+        }
+
+        function handleAutoAssign() {
+      
+            const availableSeats = [];
+            const { rows, seatsPerRow, sections } = config;
+            
+            for (let r = 0; r < rows; r++) {
+                for (let sec = 0; sec < sections; sec++) {
+                    for (let s = 0; s < seatsPerRow; s++) {
+                        availableSeats.push(`${r}-${sec}-${s}`);
+                    }
+                }
+            }
+            
+           
+            const occupiedSeats = new Set(Object.values(seatAssignments));
+            const freSeats = availableSeats.filter(s => !occupiedSeats.has(s));
+            
+            
+            let assignedCount = 0;
+            students.forEach((student) => {
+                if (!(student.name in seatAssignments) && freSeats.length > 0) {
+                    seatAssignments[student.name] = freSeats.shift();
+                    assignedCount++;
+                }
+            });
+            
+            saveSeatAssignments();
+            loadStudents();
+            console.log('Auto-assigned', assignedCount, 'new students');
+        }
+
+        function handleExport() {
+            const subjectHeaders = subjects.join(',');
+            let csv = `Student Name,Status,Seat Position,${subjectHeaders}\n`;
+            students.forEach(s => {
+                const seat = seatAssignments[s.name] || 'Not assigned';
+                const status = s.present ? 'Present' : 'Absent';
+                const pts = subjects.map(subj => {
+                    const key = getSubjectKey(subj, classProfile.teacherName);
+                    return (allSubjectPoints[key] || {})[s.name] || 0;
+                }).join(',');
+                csv += `${s.name},${status},${seat},${pts}\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `attendance_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+
+            updateStatus('Exported CSV', 'loaded');
+        }
+
+        function handleReset() {
+            if (confirm('Reset all seat assignments?')) {
+                seatAssignments = {};
+                saveSeatAssignments();
+                loadStudents();
+            }
+        }
+
+        function handleResetPoints() {
+            if (confirm(`Reset all points for "${currentSubject}" (${classProfile.teacherName || 'No Teacher'}) to zero?`)) {
+                students.forEach(s => { studentPoints[s.name] = 0; });
+                savePoints();
+                loadStudents();
+                loadStudentList();
+            }
+        }
+
+        function handleResetAll() {
+            if (confirm('Reset layout, seats, and points to defaults?')) {
+                Object.assign(config, {
+                    teacherPos: 'top',
+                    rows: 4,
+                    seatsPerRow: 4,
+                    aisle: true,
+                    sections: 2
+                });
+                seatAssignments = {};
+                allSubjectPoints = {};
+                ensureActiveSubjectPoints();
+                saveConfig();
+                saveSeatAssignments();
+                savePoints();
+                loadConfig();
+                handleAutoAssign();
+                loadStudentList();
+                updateStatus('All settings reset', 'loaded');
+            }
+        }
+
+        function showDebugInfo() {
+            const subjectPtsStr = subjects.map(subj => {
+                const pts = allSubjectPoints[getSubjectKey(subj, classProfile.teacherName)] || {};
+                return `  [${subj}]\n` + Object.entries(pts).map(([n, p]) => `    • ${n}: ${p} pts`).join('\n');
+            }).join('\n');
+
+            const info = `
+DEBUG INFO:
+═══════════════════════════════════════
+
+Students Loaded: ${students.length}
+${students.map(s => `  • ${s.name} - ${s.present ? 'Present' : 'Absent'}`).join('\n')}
+
+Current Subject: ${currentSubject}
+Class: Grade ${classProfile.grade}-${classProfile.section}
+Teacher: ${classProfile.teacherName || 'N/A'}
+
+Seat Assignments: ${Object.keys(seatAssignments).length}
+${Object.entries(seatAssignments).map(([name, seat]) => `  • ${name} → ${seat}`).join('\n')}
+
+Points by Subject:
+${subjectPtsStr}
+
+Config:
+  • Rows: ${config.rows}
+  • Seats/Row: ${config.seatsPerRow}
+  • Sections: ${config.sections}
+  • Aisle: ${config.aisle}
+  • Teacher: ${config.teacherPos}
+
+LocalStorage Usage:
+  • classroomConfig: ${(JSON.stringify(config).length / 1024).toFixed(1)} KB
+  • seatAssignments: ${(JSON.stringify(seatAssignments).length / 1024).toFixed(1)} KB
+  • allSubjectPoints: ${(JSON.stringify(allSubjectPoints).length / 1024).toFixed(1)} KB
+`;
+            
+            console.log(info);
+            alert(info);
+        }
+
+      
+        const wheelColors = [
+            '#800020', '#A0000F', '#DAA520', '#FFD700', '#B8860B', 
+            '#8B0000', '#CD5C5C', '#DC143C', '#FF6347', '#FFA500',
+            '#FFB347', '#87CEEB', '#4169E1', '#8B008B', '#FF1493'
+        ];
+
+        function generateWheelGradient(count) {
+            let gradient = 'conic-gradient(from 0deg,';
+            for (let i = 0; i < count; i++) {
+                const color = wheelColors[i % wheelColors.length];
+                const startPercent = (i / count) * 100;
+                const endPercent = ((i + 1) / count) * 100;
+                gradient += ` ${color} ${startPercent}%, ${color} ${endPercent}%${i < count - 1 ? ',' : ''}`;
+            }
+            gradient += ')';
+            return gradient;
+        }
+
+        function updateWheelNames() {
+            const mode = document.getElementById('wheelMode').value;
+            const pool = mode === 'present' ? students.filter(s => s.present) : students;
+            const wheelNames = document.getElementById('wheelNames');
+            const wheel = document.getElementById('wheel');
+            wheelNames.innerHTML = '';
+
+      
+            wheel.style.transform = 'rotate(0deg)';
+            wheel.style.background = generateWheelGradient(pool.length);
+            document.getElementById('wheelResult').style.display = 'none';
+
+            if (pool.length === 0) {
+                wheelNames.innerHTML = '<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 12px;">No students</div>';
+                return;
+            }
+
+            const centerX = 140;
+            const centerY = 140;
+            const radius = 65;
+            const degreesPerStudent = 360 / pool.length;
+            
+  
+            const fontSize = Math.max(9, Math.min(13, 110 / pool.length));
+
+            pool.forEach((student, index) => {
+          
+                const midAngle = (index + 0.5) * degreesPerStudent;
+                const radians = midAngle * Math.PI / 180;
+                
+              
+                const x = centerX + radius * Math.cos(radians);
+                const y = centerY + radius * Math.sin(radians);
+
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'wheel-name';
+                nameDiv.textContent = student.name;
+                nameDiv.style.fontSize = fontSize + 'px';
+                nameDiv.style.width = Math.max(50, degreesPerStudent * 2) + 'px';
+                nameDiv.style.height = '20px';
+                
+             
+                nameDiv.style.left = (x - nameDiv.style.width.replace('px', '') / 2) + 'px';
+                nameDiv.style.top = (y - 10) + 'px';
+       
+                nameDiv.style.transform = `rotate(${midAngle + 90}deg)`;
+                
+                wheelNames.appendChild(nameDiv);
+            });
+
+            console.log(`Wheel updated: ${pool.length} students in ${mode} mode`);
+        }
+
+        function handleSpinWheel() {
+            const mode = document.getElementById('wheelMode').value;
+            const pool = mode === 'present' ? students.filter(s => s.present) : students;
+            
+            if (pool.length === 0) {
+                alert('No students available');
+                return;
+            }
+
+            const wheel = document.getElementById('wheel');
+            const result = document.getElementById('wheelResult');
+            
+           
+            const spins = 5 + Math.random() * 3;  
+            const finalAngle = Math.random() * 360;  
+            const totalDegrees = spins * 360 + finalAngle;
+            
+            wheel.style.transform = `rotate(${totalDegrees}deg)`;
+
+            setTimeout(() => {
+              
+                
+                const normalizedRotation = totalDegrees % 360;
+                const degreesPerStudent = 360 / pool.length;
+         
+                
+                let selectedIndex = Math.round((360 - normalizedRotation) / degreesPerStudent) % pool.length;
+                if (selectedIndex < 0) selectedIndex += pool.length;
+                
+                const winner = pool[selectedIndex];
+                result.textContent = `✓ Selected: ${winner.name}`;
+                result.style.display = 'block';
+                
+                console.log(`DEBUG: Rotation=${normalizedRotation}°, PerStudent=${degreesPerStudent}°, Index=${selectedIndex}, Winner=${winner.name}`);
+            }, 4000);
+        }
+
+        function switchSubject(name) {
+            if (!subjects.includes(name)) return;
+            allSubjectPoints[getSubjectKey()] = { ...studentPoints };
+            currentSubject = name;
+            ensureActiveSubjectPoints();
+            classProfile.teacherName = '';
+            students.forEach(s => {
+                if (!(s.name in studentPoints)) studentPoints[s.name] = 0;
+            });
+            localStorage.setItem('currentSubject', currentSubject);
+            saveClassProfile();
+            savePoints();
+            refreshHeaderClassInfo();
+            renderSubjectTabs();
+            loadStudents();
+            loadStudentList();
+        }
+
+        function addSubject() {
+            openClassSetupModal();
+        }
+
+        function renderSubjectTabs() {
+            const bar = document.getElementById('subjectBar');
+            if (!bar) return;
+            bar.innerHTML = '';
+
+            const hint = document.createElement('div');
+            hint.className = 'hotbar-hint';
+            hint.textContent = 'Click in order: Grade Level > Section > Subject > Teacher';
+            bar.appendChild(hint);
+
+            const gradeRow = document.createElement('div');
+            gradeRow.className = 'subject-tabs-wrap';
+            const gradeTitle = document.createElement('span');
+            gradeTitle.className = 'hotbar-title';
+            gradeTitle.textContent = 'Grade';
+            gradeRow.appendChild(gradeTitle);
+            ['11', '12'].forEach(grade => {
+                const chip = document.createElement('button');
+                chip.className = 'subject-tab' + (classProfile.grade === grade ? ' active' : '');
+                chip.textContent = `Grade ${grade}`;
+                chip.onclick = () => {
+                    classProfile.grade = grade;
+                    classProfile.section = getSectionsForGrade(grade)[0];
+                    currentSubject = SUBJECT_OPTIONS[0];
+                    classProfile.teacherName = '';
+                    ensureActiveSubjectPoints();
+                    ensureActiveSeatAssignments();
+                    saveClassProfile();
+                    refreshHeaderClassInfo();
+                    renderSubjectTabs();
+                    loadStudents();
+                    loadStudentList();
+                };
+                gradeRow.appendChild(chip);
+            });
+            bar.appendChild(gradeRow);
+
+            if (classProfile.grade) {
+                const sectionRow = document.createElement('div');
+                sectionRow.className = 'subject-tabs-wrap';
+                const sectionTitle = document.createElement('span');
+                sectionTitle.className = 'hotbar-title';
+                sectionTitle.textContent = 'Section';
+                sectionRow.appendChild(sectionTitle);
+                getSectionsForGrade(classProfile.grade).forEach(sec => {
+                    const chip = document.createElement('button');
+                    chip.className = 'subject-tab' + (classProfile.section === sec ? ' active' : '');
+                    chip.textContent = sec;
+                    chip.onclick = () => {
+                        classProfile.section = sec;
+                        currentSubject = SUBJECT_OPTIONS[0];
+                        classProfile.teacherName = '';
+                        ensureActiveSubjectPoints();
+                        ensureActiveSeatAssignments();
+                        saveClassProfile();
+                        refreshHeaderClassInfo();
+                        renderSubjectTabs();
+                        loadStudents();
+                        loadStudentList();
+                    };
+                    sectionRow.appendChild(chip);
+                });
+                const setupBtn = document.createElement('button');
+                setupBtn.className = 'subject-add-btn';
+                setupBtn.textContent = 'Edit Hierarchy';
+                setupBtn.onclick = openClassSetupModal;
+                sectionRow.appendChild(setupBtn);
+                bar.appendChild(sectionRow);
+            }
+
+            if (classProfile.section) {
+                const subjectRow = document.createElement('div');
+                subjectRow.className = 'subject-tabs-wrap';
+                const subjectTitle = document.createElement('span');
+                subjectTitle.className = 'hotbar-title';
+                subjectTitle.textContent = 'Subject';
+                subjectRow.appendChild(subjectTitle);
+                SUBJECT_OPTIONS.forEach(name => {
+                    const chip = document.createElement('button');
+                    chip.className = 'subject-tab' + (name === currentSubject ? ' active' : '');
+                    chip.textContent = name;
+                    chip.onclick = () => {
+                        currentSubject = name;
+                        classProfile.teacherName = '';
+                        ensureActiveSubjectPoints();
+                        ensureActiveSeatAssignments();
+                        localStorage.setItem('currentSubject', currentSubject);
+                        saveClassProfile();
+                        refreshHeaderClassInfo();
+                        renderSubjectTabs();
+                        loadStudents();
+                        loadStudentList();
+                    };
+                    subjectRow.appendChild(chip);
+                });
+                bar.appendChild(subjectRow);
+            }
+
+            if (currentSubject) {
+                const teacherRow = document.createElement('div');
+                teacherRow.className = 'subject-tabs-wrap';
+                const teacherTitle = document.createElement('span');
+                teacherTitle.className = 'hotbar-title';
+                teacherTitle.textContent = 'Teacher';
+                teacherRow.appendChild(teacherTitle);
+                const teachers = getTeachersForContext(classProfile.grade, classProfile.section, currentSubject);
+                teachers.forEach(teacherName => {
+                    const chip = document.createElement('button');
+                    chip.className = 'subject-tab' + (teacherName === classProfile.teacherName ? ' active' : '');
+                    chip.textContent = teacherName;
+                    chip.onclick = () => {
+                        classProfile.teacherName = teacherName;
+                        ensureActiveSeatAssignments();
+                        ensureActiveSubjectPoints();
+                        saveClassProfile();
+                        refreshHeaderClassInfo();
+                        renderSubjectTabs();
+                        loadStudents();
+                        loadStudentList();
+                        updateStatus(`Active: ${teacherName} (${currentSubject})`, 'loaded');
+                    };
+                    teacherRow.appendChild(chip);
+                });
+                const addTeacherBtn = document.createElement('button');
+                addTeacherBtn.className = 'subject-add-btn';
+                addTeacherBtn.textContent = '+ Add Teacher';
+                addTeacherBtn.onclick = openClassSetupModal;
+                teacherRow.appendChild(addTeacherBtn);
+                bar.appendChild(teacherRow);
+            }
+        }
+
+        function addPoint(name) {
+            studentPoints[name] = (studentPoints[name] || 0) + 1;
+            savePoints();
+            exportPointsToFile();
+            loadStudents();
+            loadStudentList();
+        }
+
+        function removePoint(name) {
+            studentPoints[name] = Math.max(0, (studentPoints[name] || 0) - 1);
+            savePoints();
+            exportPointsToFile();
+            loadStudents();
+            loadStudentList();
+        }
+
+        function exportPointsToFile() {
+            try {
+                const pointsData = {
+                    timestamp: new Date().toISOString(),
+                    currentSubject,
+                    points: studentPoints,
+                    allSubjectPoints
+                };
+                
+                fetch('http://localhost:8001/save_points', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    mode: 'cors',
+                    body: JSON.stringify(pointsData)
+                })
+                .then(response => {
+                    if (response.ok) {
+                        console.log('✓ Points synced to server');
+                    } else {
+                        console.log('⚠ Points server unavailable, using localStorage only');
+                    }
+                })
+                .catch(() => {
+                    console.log('⚠ Points server offline, using localStorage only');
+                });
+                
+            } catch (e) {
+                console.log('Points sync error:', e.message);
+            }
+        }
+
+        window.addEventListener('load', function() {
+            loadClassProfile();
+            loadClassHierarchy();
+            loadSubjects();
+            loadConfig();
+            loadSeatAssignments();
+            loadAllSubjectPoints();
+            renderSubjectTabs();
+            refreshHeaderClassInfo();
+            loadStudents();
+            handleSync();
+            
+           
+            exportPointsToFile();
+            setInterval(exportPointsToFile, 30000); 
+
+         
+            setInterval(handleSync, 10000);
+            
+
+            document.getElementById('wheelMode').addEventListener('change', updateWheelNames);
+            document.getElementById('setupGrade').addEventListener('change', () => {
+                refreshSetupSectionOptions();
+                refreshSetupSubjectOptions(currentSubject);
+                syncSetupTeacherField();
+            });
+            document.getElementById('setupSection').addEventListener('change', syncSetupTeacherField);
+            document.getElementById('setupSubject').addEventListener('change', syncSetupTeacherField);
+
+
+            openClassSetupModal();
+        });
+    </script>
+</body>
+</html>
